@@ -1,0 +1,35 @@
+<%- include('../partials/head.ejs') %>
+<link rel="stylesheet" type="text/css" href="/css/product.css">
+<link rel="stylesheet" type="text/css" href="/css/form.css">
+</head>
+<body>
+	<%- include('../partials/nav.ejs') %>
+
+	<main>
+		<form class="product-form" action="/admin/<%= (editing) ? 'edit-product' : 'add-product' %>" method="POST">
+			<div class="form-control">
+				<label for="title">Title</label>
+				<input type="text" name="title" id="title" value="<%= (editing) ? product.title : '' %>">
+			</div>
+			<div class="form-control">
+				<label for="imageUrl">Image Url</label>
+				<input type="text" name="imageUrl" id="imageUrl" value="<%= (editing) ? product.imageUrl : '' %>">
+			</div>
+			<div class="form-control">
+				<label for="price">Price</label>
+				<input type="number" step="0.01" name="price" id="price" value="<%= (editing) ? product.price : '' %>">
+			</div>
+			<div class="form-control">
+				<label for="description">Description</label>
+				<textarea name="description" id="description" rows="5"><%= (editing) ? product.description : '' %></textarea>
+			</div>
+
+			<button class="btn" type="submit"><%= (editing) ? 'Update' : 'Add Product'%></button>
+			<% if (editing) { %>
+				<input type="hidden" name="productId" value="<%= product.id %>">
+
+			<% } %>
+		</form>
+	</main>
+
+<%- include('../partials/end.ejs') %>
