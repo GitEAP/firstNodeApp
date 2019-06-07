@@ -16,44 +16,17 @@ exports.store = (req,res,next) => {
 	const description = req.body.description;
 	const price = req.body.price;
 
-	//Mongo Example
-	const product = new Product(title, price, description, imageUrl, null, req.user._id);
+	// Mongoose Example
+	const product = new Product({
+		title,
+		price,
+		description,
+		imageUrl,
+		userId: req.user
+	});
 	product.save()
 	.then(result => { console.log('Product Saved'); res.redirect('/admin/products'); })
 	.catch(err => { console.log(err); });
-
-	// MySQL example
-	// const product = new Product(null, title, imageUrl, description, price);
-	// product.save()
-	// .then(() => {
-	// 	res.redirect('/');
-	// })
-	// .catch(err => {
-	// 	console.log(err);
-	// });
-
-
-	// Sequelize example
-	// Product.create({
-	// 	title,
-	// 	price,
-	// 	imageUrl,
-	// 	description,
-	// })
-	// .then(result => { console.log('Product Saved'); res.redirect('/admin/products'); })
-	// .catch(err => { console.log(err); });
-
-
-	// Sequelize with relation example
-	// req.user.createProduct({
-	// 	title,
-	// 	price,
-	// 	imageUrl,
-	// 	description,
-	// })
-	// .then(result => { console.log('Product Saved'); res.redirect('/admin/products'); })
-	// .catch(err => { console.log(err); });
-
 };
 
 exports.edit = (req, res, next) => {
@@ -85,18 +58,24 @@ exports.update = (req,res,next) => {
 	const updatedDescription = req.body.description;
 	const updatedPrice = req.body.price;
 
-	const product = new Product(updatedTitle, updatedPrice, updatedDescription, updatedImageUrl, prodId);
-	product.save()
-		.then(result => {
-			console.log('Product updated');
-			res.redirect('/admin/products');
-		})
-		.catch(err => console.log(err));
+	Product.findById(prodId)
+	.then(product => {
+		product.title = updatedTitle;
+		product.price = updatedPrice;
+		product.description = updatedDescription;
+		product.imageUrl = updatedImageUrl;
+		return product.save()
+	})
+	.then(result => {
+		console.log('Product updated');
+		res.redirect('/admin/products');
+	})
+	.catch(err => console.log(err));
 };
 
 exports.destroy = (req,res,next) => {
 	const prodId = req.body.productId;
-	Product.deleteById(prodId)
+	Product.findByIdAndRemove(prodId)
 		.then (result => {
 			console.log('product destroyed');
 			res.redirect('/admin/products');
@@ -105,7 +84,9 @@ exports.destroy = (req,res,next) => {
 };
 
 exports.getProducts = (req,res,next) => {
-	Product.fetchAll()
+	Product.find()
+	// .select('title price -_id')
+	// .populate('userId', 'name email')
 	.then(products => {
 		res.render('admin/products', { 
 			pageTitle: 'Admin Products', 
