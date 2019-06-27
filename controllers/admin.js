@@ -1,4 +1,5 @@
 const { validationResult } = require('express-validator/check');
+const fileHelper = require('../util/file.js');
 
 const Product = require('../models/product.js');
 
@@ -17,9 +18,22 @@ exports.create = (req, res, next) => {
 // save product
 exports.store = (req,res,next) => {
 	const title = req.body.title;
-	const imageUrl = req.body.imageUrl;
+	const image = req.file;
 	const description = req.body.description;
 	const price = req.body.price;
+	if (!image) {
+		return res.status(422).render('admin/edit-product', {
+			pageTitle: 'Add Product',
+			path: '/admin/add-product',
+			editing: false,
+			hasError: true,
+			product: {
+				title, price, description
+			},
+			errorMessage: 'File is not an image',
+			validationErrors: []
+		}); 
+	}
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
 		return res.status(422).render('admin/edit-product', {
@@ -28,12 +42,15 @@ exports.store = (req,res,next) => {
 			editing: false,
 			hasError: true,
 			product: {
-				title, imageUrl, price, description
+				title, price, description
 			},
 			errorMessage: errors.array()[0].msg,
 			validationErrors: errors.array()
 		});
 	}
+
+	const imageUrl = image.path;
+
 	// Mongoose Example
 	const product = new Product({
 		title,
@@ -83,9 +100,10 @@ exports.edit = (req, res, next) => {
 exports.update = (req,res,next) => {
 	const prodId = req.body.productId;
 	const updatedTitle = req.body.title;
-	const updatedImageUrl = req.body.imageUrl;
+	const image = req.file;
 	const updatedDescription = req.body.description;
 	const updatedPrice = req.body.price;
+
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
 		return res.status(422).render('admin/edit-product', {
@@ -95,7 +113,6 @@ exports.update = (req,res,next) => {
 			hasError: true,
 			product: {
 				title: updatedTitle,
-				imageUrl: updatedImageUrl, 
 				price: updatedPrice, 
 				description: updatedDescription,
 				_id: prodId
@@ -113,7 +130,10 @@ exports.update = (req,res,next) => {
 		product.title = updatedTitle;
 		product.price = updatedPrice;
 		product.description = updatedDescription;
-		product.imageUrl = updatedImageUrl;
+		if (image) {
+			fileHelper.deleteFile(product.imageUrl);
+			product.imageUrl = image.path;
+		}
 		return product.save()
 			.then(result => {
 				console.log('Product updated');
@@ -129,7 +149,14 @@ exports.update = (req,res,next) => {
 
 exports.destroy = (req,res,next) => {
 	const prodId = req.body.productId;
-	Product.deleteOne({_id: prodId, userId: req.user._id})
+	Product.findById(prodId)
+		.then(product => {
+			if (!product) {
+				return next(new Error('Product not found'));
+			}
+			fileHelper.deleteFile(product.imageUrl);
+			return Product.deleteOne({_id: prodId, userId: req.user._id});
+		})
 		.then (result => {
 			console.log('product destroyed');
 			res.redirect('/admin/products');
