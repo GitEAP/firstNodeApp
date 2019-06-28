@@ -17,6 +17,8 @@ const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const errorsController = require('./controllers/errors.js');
 const authRoutes = require('./routes/auth');
+const shopController = require('./controllers/shop.js');
+const isAuth = require('./middleware/is-auth.js');
 
 const MONGODB_URI = 'mongodb+srv://erickp:mongoSFA@testdb-i08z9.mongodb.net/testDB?retryWrites=true&w=majority';
 
@@ -65,14 +67,7 @@ app.use(session({
 	store: store
 }));
 
-app.use(csrfProtection);
 app.use(flash());
-
-app.use((req, res, next) => {
-	res.locals.isAuthenticated = req.session.isLoggedIn;
-	res.locals.csrfToken = req.csrfToken();
-	next();
-});
 
 // assign logged in user
 app.use((req, res, next) => {
@@ -93,6 +88,15 @@ app.use((req, res, next) => {
 });
 
 //routes
+app.post('/create-order', isAuth, shopController.storeOrder);
+
+app.use(csrfProtection);
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = req.session.isLoggedIn;
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
+
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
@@ -104,6 +108,7 @@ app.use('/500', errorsController.error500);
 app.use((error, req, res, next) => {
 	// res.status(error.httpStatusCode).render();
 	// res.redirect('/500');
+  console.log(error);
 	res.status(500).render('errors/500', {
 		pageTitle: 'Error',
 		path: '/500',
